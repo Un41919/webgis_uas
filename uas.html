@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, user-scalable=no, maximum-scale=1, width=device-width" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <title>WebGIS</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.2/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.0.2/dist/leaflet.js"></script>
+
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0; /* Hapus margin default */
+        padding: 0; /* Hapus padding default */
+      }
+
+      #map {
+        height: calc(100% - 40px); /* Kurangi tinggi navbar (50px) */
+        width: 100%; /* Pastikan lebar penuh */
+        margin: 0; /* Hapus margin */
+        margin-top: 40px; /* Geser peta ke bawah */
+      }
+
+      .leaflet-tooltip {
+        background: transparent; /* Hapus background */
+        border: none; /* Hapus border */
+        box-shadow: none; /* Hapus bayangan */
+        color: #f00a0a; /* Ubah warna teks sesuai kebutuhan */
+        font-weight: bolder; /* Sesuaikan gaya teks */
+        font-size: medium;
+        margin-left: 7px; /* Geser teks ke kanan dari marker */
+        margin-top: -20px;
+        -webkit-text-stroke: 0.6px white;
+      }
+
+      .leaflet-tooltip::before {
+        display: none; /* Hilangkan segitiga putih */
+      }
+
+      .leaflet-tooltip.hover {
+        color: blue; /* Warna saat di-hover */
+      }
+
+      #navbar {
+        background-color: white; /* Warna background navbar */
+        color: #f00a0a; /* Warna teks */
+        padding: 10px;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000; /* Agar berada di atas peta */
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2); /* Bayangan bawah */
+      }
+
+      /* Pastikan tombol zoom Leaflet berada di bawah navbar */
+      .leaflet-top.leaflet-left {
+        top: 20px;
+      }
+
+      /* Pastikan kontrol layer berada di bawah navbar */
+      .leaflet-control-layers {
+        margin-top: 60px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Navbar -->
+    <div id="navbar">WebGIS Rumah Sakit Jakarta Pusat</div>
+    <div id="map"></div>
+
+    <script>
+      // Initialize the map
+      var map = L.map("map").setView([-6.2, 106.8], 11);
+
+      // Tile Basemap
+      var Esri_WorldImagery = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: "Tiles &copy; Nailul Muna, Universitas Islam Indonesia, PETA TITIK RUMAH SAKIT JAKARTA PUSAT",
+      });
+
+      var OpenStreetMap_France = L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png", {
+        maxZoom: 20,
+        attribution: "Tiles &copy; Nailul Muna, Universitas Islam Indonesia, PETA TITIK RUMAH SAKIT JAKARTA PUSAT",
+      });
+
+      var CyclOSM = L.tileLayer("https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png", {
+        maxZoom: 20,
+        attribution: "Tiles &copy; Nailul Muna, Universitas Islam Indonesia, PETA TITIK RUMAH SAKIT JAKARTA PUSAT",
+      });
+
+      var Esri_WorldStreetMap = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+        attribution: "Tiles &copy; Nailul Muna, Universitas Islam Indonesia, PETA TITIK RUMAH SAKIT JAKARTA PUSAT",
+      });
+
+      // Set the default layer
+      Esri_WorldImagery.addTo(map);
+
+      // Control Layer for switching between basemaps
+      var baseMaps = {
+        "Esri World Imagery": Esri_WorldImagery,
+        "Open Street Map France": OpenStreetMap_France,
+        "Cyc lOSM": CyclOSM,
+        "Esri WorldStreetMap": Esri_WorldStreetMap,
+      };
+
+      var markerLayer = L.layerGroup();
+
+      // Markers with custom icons
+      var customIcon = L.icon({
+        iconUrl: "https://png.pngtree.com/png-vector/20220630/ourmid/pngtree-hospital-logo-icon-abstract-alliance-png-image_5638727.png",
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40],
+      });
+
+      var markers = [
+        { coords: [-6.147459, 106.829521], name: "Rumah Sakit Husada", address: "Jl. Raya Mangga Besar No.137-139, Mangga Dua Sel., <br> Kecamatan Sawah Besar, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10730" },
+        { coords: [-6.180105, 106.818655], name: "Budi Kemuliaan Hospital", address: "Jl. Budi Kemuliaan No.25, RT.2/RW.3, Gambir, <br> Kecamatan Gambir, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10110" },
+        { coords: [-6.189841, 106.829016], name: "Abdi Waluyo Hospital", address: "Jl. HOS. Cokroaminoto No.31-33, RT.1/RW.3, Gondangdia, <br> Kec. Menteng, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10310" },
+        { coords: [-6.187198, 106.838301], name: "Menteng Mitra Afia Hospital", address: "Jl. Kalipasir No.12, Kb. Sirih, Kec. Menteng, <br> Kota Jakarta Pusat, <br >Daerah Khusus Ibukota Jakarta 10340" },
+        { coords: [-6.170677, 106.870882], name: "Jakarta Islamic Hospital", address: "Jl. Cemp. Putih Tengah I No.1, RT.11/RW.5, Cemp. Putih Tim., <br> Kec. Cemp. Putih, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10510" },
+        { coords: [-6.157489, 106.878693], name: "Pertamina Jaya Hospital", address: "Jl. Jenderal Ahmad Yani No.2, RT.2/RW.7, Cemp. Putih Tim., <br> Kec. Cemp. Putih, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10510" },
+        { coords: [-6.193841, 106.836023], name: "RS YPK Mandiri", address: "22, Jl. Gereja Theresia No.22, RT.7/RW.4, Gondangdia, <br> Kec. Menteng, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10350" },
+        { coords: [-6.168445, 106.822395], name: "RSUD Sawah Besar", address: "Jl. Dwiwarna Raya No.6-8 15, RT.15/RW.9, Karang Anyar, <br> Kecamatan Sawah Besar, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10740" },
+        { coords: [-6.190813, 106.856943], name: "RSUD Kramat 128", address: "Jl. Kramat Raya No.128 1, RT.1/RW.8, Kenari, <br> Kec. Senen, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10430" },
+        { coords: [-6.173865, 106.856305], name: "Yarsi Hospital", address: "Jl. Letjen Suprapto No.Kav 13 10, RT.10/RW.5, Cemp. Putih Tim., <br> Kec. Cemp. Putih, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10510" },
+        {
+          coords: [-6.207118, 106.819936],
+          name: "Murni Teguh Sudirman Jakarta Hospital",
+          address: "Kawasan Sahid City, Jl. Jenderal Sudirman No.86, RT.10/RW.11, Karet Tengsin, <br> Kecamatan Tanah Abang, Kota Jakarta Pusat,<br>  Daerah Khusus Ibukota Jakarta 10220",
+        },
+        { coords: [-6.172471, 106.824098], name: "Tarakan Regional General Hospital", address: "Jl. Kyai Caringin No.7, RT.11/RW.4, Cideng, <br> Kecamatan Gambir, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10150" },
+        { coords: [-6.185299, 106.841366], name: "SSMedika Minimal Invasive Surgical Centre", address: "Jl. Salemba I No.3 4, RT.4/RW.6, Kenari, <br> Kec. Senen, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10430" },
+        { coords: [-6.192174, 106.829368], name: "Bunda General Hospital", address: "Jl. Teuku Cik Ditiro No.21, RT.9/RW.2, Gondangdia, <br> Kec. Menteng, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10350" },
+        { coords: [-6.184845, 106.841278], name: "Gatot Soebroto Army Hospital", address: "Jl. Abdul Rahman Saleh Raya No.24, RT.10/RW.5, Senen, <br> Kec. Senen, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10410" },
+        { coords: [-6.173006, 106.843622], name: "RSUD Johar Baru", address: "Jl. Tanah Tinggi XII No.15-23, RT.10/RW.9, Tanah Tinggi, <br> Kec. Johar Baru, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10540" },
+        { coords: [-6.160931, 106.857579], name: "RSUD Kemayoran", address: "Jl. Serdang Baru I, Serdang, <br> Kec. Kemayoran, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10650" },
+        { coords: [-6.208798, 106.816587], name: "Dr. Mintohardjo Naval Hospital", address: "4, Jl. Bendungan Hilir No.17, RT.4/RW.3, Bend. Hilir, <br> Kecamatan Tanah Abang, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10210" },
+        { coords: [-6.189662, 106.844329], name: "RSIA Tambak", address: "Jl. Tambak No.18, Pegangsaan, <br> Kec. Menteng, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10320" },
+        { coords: [-6.186285, 106.819253], name: "RSUD Tanah Abang", address: "Jl. K.H. Mas Mansyur No.30, RT.5/RW.7, Kb. Kacang, <br> Kecamatan Tanah Abang, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10240" },
+        { coords: [-6.202579, 106.836138], name: "St Carolus Hospital", address: "Jl. Salemba Raya No.41, RT.3/RW.5, Paseban, <br> Kec. Senen, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10440" },
+        { coords: [-6.192304, 106.829382], name: "RSIA Bunda Jakarta", address: "Jl. Teuku Cik Ditiro No.28, RT.9/RW.2, Gondangdia, <br> Kec. Menteng, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10350" },
+        { coords: [-6.202838, 106.836177], name: "Radjak Hospital Salemba", address: "Jl. Salemba Tengah No.24-28, Paseban, <br> Kec. Senen, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10440" },
+        { coords: [-6.164849, 106.860038], name: "Mitra Keluarga Kemayoran", address: "Jl. HBR Motik, RT.13/RW.6, Kb. Kosong, <br> Kec. Kemayoran, Jkt Pusat, <br> Daerah Khusus Ibukota Jakarta 10630" },
+        { coords: [-6.169892, 106.848347], name: "Primaya Evasari Hospital", address: "Jl. Rawamangun No.47 7, RT.10/RW.3, Rawasari, <br> Kec. Cemp. Putih, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10570" },
+        { coords: [-6.186239, 106.843185], name: "RS Cikini", address: "Jl. Raden Saleh Raya No.40 12, RT.12/RW.2, Cikini, <br> Kec. Menteng, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10330" },
+        { coords: [-6.186239, 106.843185], name: "Primaya Hospital PGI Cikini", address: "Jl. Raden Saleh Raya No.40, RT.12/RW.2, Cikini, <br> Kec. Menteng, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10330" },
+        { coords: [-6.185299, 106.841366], name: "ENT and Orthopedic Hospital SS Medika", address: "Jl. Salemba I No.11, RT.4/RW.6, Kenari, <br> Kec. Senen, Kota Jakarta Pusat, <br> Daerah Khusus Ibukota Jakarta 10430" },
+        { coords: [-6.189841, 106.829016], name: "RSIA Jakarta", address: "RR3P+78G, RT.10/RW.2, Gondangdia, <br> Menteng, Central Jakarta City, <br> Jakarta 10310" },
+        { coords: [-6.219317, 106.823424], name: "Jakarta Hospital", address: "Jl. Jend. Sudirman No.Kav. 49, RT.5/RW.4, Karet Semanggi, <br> Kecamatan Setiabudi, Kota Jakarta Selatan, <br> Daerah Khusus Ibukota Jakarta 12930" },
+      ];
+
+      markers.forEach(function (marker) {
+        const markerInstance = L.marker(marker.coords, { icon: customIcon }).addTo(markerLayer);
+
+        // Bind tooltip (permanent, appears below marker)
+        const tooltip = markerInstance.bindTooltip(marker.name, { permanent: true, direction: "right", offset: [0, 0] }).getTooltip();
+
+        // Event untuk mengganti warna tooltip
+        markerInstance.on("mouseover", function () {
+          tooltip._container.classList.add("hover"); // Tambahkan kelas saat di-hover
+        });
+
+        markerInstance.on("mouseout", function () {
+          tooltip._container.classList.remove("hover"); // Hapus kelas saat tidak di-hover
+        });
+
+        // Bind popup without close button
+        markerInstance.bindPopup("<b>" + marker.name + "</b><br>" + marker.address, { closeButton: false });
+
+        // Bind popup and show it on mouseover
+        markerInstance.on("mouseover", function () {
+          this.openPopup();
+        });
+        markerInstance.on("mouseout", function () {
+          this.closePopup();
+        });
+      });
+
+      // Kumpulkan semua koordinat marker ke dalam sebuah array
+      var hospitalCoordinates = markers.map((marker) => marker.coords);
+
+      // Buat polyline untuk menghubungkan semua marker
+      var hospitalRoute = L.polyline(hospitalCoordinates, {
+        color: "blue", // Warna garis
+        weight: 4, // Ketebalan garis
+        opacity: 0.7, // Transparansi garis
+      }).addTo(map);
+
+      // Zoom otomatis untuk melihat seluruh polyline
+      map.fitBounds(hospitalRoute.getBounds());
+
+      markerLayer.addTo(map);
+
+      var overlayMaps = {
+        "Hospital Routes": hospitalRoute, // Contoh jika ingin jalur bisa diaktifkan/nonaktifkan
+      };
+
+      L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+    </script>
+  </body>
+</html>
